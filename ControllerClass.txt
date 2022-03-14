@@ -1,0 +1,205 @@
+package sample;
+
+import javafx.beans.Observable;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseEvent;
+
+import java.net.URL;
+import java.sql.*;
+import java.util.ResourceBundle;
+
+public class Controller implements Initializable {
+
+    @FXML // fx:id="lblID"
+    private Label lblID; // Value injected by FXMLLoader
+
+    @FXML // fx:id="lblTitle"
+    private Label lblTitle; // Value injected by FXMLLoader
+
+    @FXML // fx:id="lblAuthor"
+    private Label lblAuthor; // Value injected by FXMLLoader
+
+    @FXML // fx:id="lblYear"
+    private Label lblYear; // Value injected by FXMLLoader
+
+    @FXML // fx:id="lblPages"
+    private Label lblPages; // Value injected by FXMLLoader
+
+    @FXML // fx:id="btnInsert"
+    private Button btnInsert; // Value injected by FXMLLoader
+
+    @FXML // fx:id="btnUpdate"
+    private Button btnUpdate; // Value injected by FXMLLoader
+
+    @FXML // fx:id="btnDelete"
+    private Button btnDelete; // Value injected by FXMLLoader
+
+    @FXML // fx:id="tfID"
+    private TextField tfID; // Value injected by FXMLLoader
+
+    @FXML // fx:id="tfTitle"
+    private TextField tfTitle; // Value injected by FXMLLoader
+
+    @FXML // fx:id="tfAuthor"
+    private TextField tfAuthor; // Value injected by FXMLLoader
+
+    @FXML // fx:id="tfYear"
+    private TextField tfYear; // Value injected by FXMLLoader
+
+    @FXML // fx:id="tfPages"
+    private TextField tfPages; // Value injected by FXMLLoader
+
+    @FXML // fx:id="tvBooks"
+    private TableView<Books> tvBooks; // Value injected by FXMLLoader
+
+    @FXML // fx:id="colID"
+    private TableColumn<Books, Integer> colID; // Value injected by FXMLLoader
+
+    @FXML // fx:id="colTitle"
+    private TableColumn<Books, String> colTitle; // Value injected by FXMLLoader
+
+    @FXML // fx:id="colAuthor"
+    private TableColumn<Books, String> colAuthor; // Value injected by FXMLLoader
+
+    @FXML // fx:id="colYear"
+    private TableColumn<Books, Integer> colYear; // Value injected by FXMLLoader
+
+    @FXML // fx:id="colPages"
+    private TableColumn<Books, Integer> colPages; // Value injected by FXMLLoader
+
+    public void handleButtonActions(ActionEvent event)
+    {
+        if(event.getSource() == btnInsert)
+        {
+            insertRecord();
+        }else if(event.getSource() == btnUpdate)
+        {
+            updateRecord();
+        }
+        else if(event.getSource() == btnDelete)
+        {
+            deleteRecord();
+        }
+    }
+
+    public Connection getConnection()
+    {
+        Connection connection;
+        try
+        {
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb","root", "mypass");
+            System.out.println("Connected to Database...");
+        }
+        catch (Exception e)
+        {
+            System.out.println(e.getMessage());
+            connection = null;
+        }
+        return connection;
+    }
+
+    public ObservableList<Books> getBooks()
+    {
+        ObservableList<Books> bookList = FXCollections.observableArrayList();
+        Connection connection = getConnection();
+        String query = "SELECT * FROM Books";
+        Statement statement;
+        ResultSet rs;
+        try
+        {
+            statement = connection.createStatement();
+           rs = statement.executeQuery(query);
+           while(rs.next())
+           {
+                bookList.add(new Books(rs.getInt("id"), rs.getString("Title"),
+                rs.getString("Author"), rs.getInt("Year"), rs.getInt("Pages")));
+           }
+        }
+        catch(Exception exception)
+        {
+            System.out.println("Error: " + exception.getMessage());
+        }
+        return bookList;
+    }
+
+    public void showBooks()
+    {
+        ObservableList<Books> bookList = getBooks();
+
+        colID.setCellValueFactory(new PropertyValueFactory<Books, Integer>("id"));
+        colTitle.setCellValueFactory(new PropertyValueFactory<Books, String>("Title"));
+        colAuthor.setCellValueFactory(new PropertyValueFactory<Books, String>("Author"));
+        colYear.setCellValueFactory(new PropertyValueFactory<Books, Integer>("Year"));
+        colPages.setCellValueFactory(new PropertyValueFactory<Books, Integer>("Pages"));
+
+        tvBooks.setItems(bookList);
+    }
+
+    private void insertRecord()
+    {
+        System.out.println("Inserting Record...");
+        String query = "INSERT INTO Books (Title, Author, Year, Pages)  VALUES ('" + tfTitle.getText() + "', '" +
+                tfAuthor.getText() + "'," + tfYear.getText() + "," + tfPages.getText() + ")";
+        executeQuery(query);
+        showBooks();
+        System.out.println("Record inserted...");
+    }
+
+    private void updateRecord()
+    {
+        System.out.println("Updating Record...");
+        String query = "UPDATE Books SET Title = '" + tfTitle.getText() + "',Author =  '" +
+                tfAuthor.getText() + "', Year = " + tfYear.getText() + ", Pages = " + tfPages.getText()
+                + " WHERE ID = " + tfID.getText() + "";
+        executeQuery(query);
+        showBooks();
+        System.out.println("Record updated...");
+    }
+
+    private void deleteRecord()
+    {
+        System.out.println("Deleting Record...");
+        String query = "DELETE FROM Books WHERE ID = " + tfID.getText() + "";
+        executeQuery(query);
+        showBooks();
+        tfTitle.setText("");
+        tfAuthor.setText("");
+        tfPages.setText("");
+        tfYear.setText("");
+        tfID.setText("");
+        System.out.println("Record deleted...");
+    }
+
+    private void executeQuery(String query)
+    {
+        Connection connection = getConnection();
+        Statement st;
+
+        try {
+            st = connection.createStatement();
+            st.executeUpdate(query);
+        } catch (SQLException throwables) {
+            System.out.println(throwables.getMessage());
+        }
+    }
+    @FXML
+    void onMouseClicked(MouseEvent event) {
+        Books book = tvBooks.getSelectionModel().getSelectedItem();
+        tfID.setText(book.getId() + "");
+        tfTitle.setText(book.getTitle());
+        tfAuthor.setText(book.getAuthor());
+        tfYear.setText(book.getYear() + "");
+        tfPages.setText(book.getPages() + "");
+    }
+
+    @Override
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        showBooks();
+    }
+}
